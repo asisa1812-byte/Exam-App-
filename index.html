@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Exam App</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { font-family: 'SolaimanLipi', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .question { font-weight: bold; margin-bottom: 15px; }
+        .options label { display: block; background: #f8f9fa; padding: 10px; margin-bottom: 8px; border-radius: 5px; cursor: pointer; }
+        .options label:hover { background: #e9ecef; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <h2>অনলাইন পরীক্ষা লোড হচ্ছে...</h2>
+    </div>
+
+    <script>
+        // আপনার Apps Script এর লাইভ /exec লিংকটি এখানে বসাবেন
+        const API_URL = "YOUR_APPS_SCRIPT_EXEC_URL_HERE?sheet=Bangla";
+
+        fetch(API_URL)
+            .then(res => res.json())
+            .then(data => {
+                let html = `<h3>মোট প্রশ্ন: ${data.length}টি</h3>`;
+                data.forEach((item, index) => {
+                    html += `<div style="margin-bottom:20px;">
+                        <div class="question">${index + 1}. ${item.q}</div>
+                        <div class="options">
+                            <label><input type="radio" name="q${index}" value="A"> ${item.options[0]}</label>
+                            <label><input type="radio" name="q${index}" value="B"> ${item.options[1]}</label>
+                            <label><input type="radio" name="q${index}" value="C"> ${item.options[2]}</label>
+                            <label><input type="radio" name="q${index}" value="D"> ${item.options[3]}</label>
+                        </div>
+                    </div>`;
+                });
+                html += `<button onclick="alert('পরীক্ষা জমা দেওয়া হয়েছে!')">সাবমিট করুন</button>`;
+                document.getElementById('app').innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById('app').innerHTML = "ডেটা লোড করতে সমস্যা হচ্ছে।";
+            });
+    </script>
+</body>
+</html>
