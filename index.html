@@ -20,8 +20,8 @@
     </div>
 
     <script>
-        // আপনার Apps Script এর লাইভ /exec লিংকটি এখানে বসাবেন
-        const API_URL = "YOUR_APPS_SCRIPT_EXEC_URL_HERE?sheet=Bangla";
+        // আপনার Apps Script এর লাইভ /exec লিংকটি এখানে বসানো হয়েছে
+        const API_URL = "https://script.google.com/macros/s/AKfycbyFPtGUnCXxs1Jy8a2r8L-HqGAS-toxW8vvvSRh6BhAaPNadAd2vdI-RPmi-VLKhw/exec?sheet=Bangla";
 
         fetch(API_URL)
             .then(res => res.json())
@@ -38,7 +38,7 @@
                         </div>
                     </div>`;
                 });
-                html += `<button onclick="alert('পরীক্ষা জমা দেওয়া হয়েছে!')">সাবমিট করুন</button>`;
+                html += `<button onclick="alert('পরীক্ষা জমা দেওয়া হয়েছে!')">সাবমিট করুন</button>`;
                 document.getElementById('app').innerHTML = html;
             })
             .catch(err => {
