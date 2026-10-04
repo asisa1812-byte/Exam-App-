@@ -29,7 +29,7 @@
                 let html = `<h3>মোট প্রশ্ন: ${data.length}টি</h3>`;
                 data.forEach((item, index) => {
                     html += `<div style="margin-bottom:20px;">
-                        <div class="question">${index + 1}. ${item.q}</div>
+                      <div class="question">${index + 1}. ${item.question}</div>
                         <div class="options">
                             <label><input type="radio" name="q${index}" value="A"> ${item.options[0]}</label>
                             <label><input type="radio" name="q${index}" value="B"> ${item.options[1]}</label>
