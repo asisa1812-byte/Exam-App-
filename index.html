@@ -34,6 +34,11 @@
   .center { text-align:center; padding:30px 10px; }
   .thanks { background:linear-gradient(135deg,#dcfce7,#e0e7ff); border-radius:12px; padding:18px; text-align:center; margin-bottom:20px; line-height:1.8; }
   .thanks b { color:var(--dark); font-size:18px; }
+  .overlay { position:fixed; inset:0; background:rgba(15,23,42,.65); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  .modal { background:#fff; border-radius:16px; padding:28px 22px; max-width:380px; width:100%; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.35); line-height:1.8; }
+  .modal .emoji { font-size:46px; }
+  .modal button { margin-top:14px; }
+  .modal button:disabled { background:#94a3b8; cursor:wait; }
   .namebox { margin-bottom:18px; }
   .namebox input { width:100%; padding:12px; font-size:16px; font-family:inherit; border:2px solid #c7d2fe; border-radius:10px; }
   .namebox input:focus { outline:none; border-color:var(--main); }
@@ -137,11 +142,41 @@ function submitExam(timeUp) {
     const c = document.querySelector(`input[name="q${i}"]:checked`);
     answers[q.id] = c ? c.value : "";
   });
-  app.innerHTML = `
-    <div class="head"><h1>${timeUp ? "সময় শেষ!" : "পরীক্ষা জমা হচ্ছে..."}</h1></div>
-    <div class="body center"><p>${esc(studentName)}, ফলাফল তৈরি হচ্ছে। একটু অপেক্ষা করুন...</p></div>`;
-  window.scrollTo(0, 0);
 
+  let outcome = null;      // ফলাফল এলে এখানে জমা হবে
+  let modalClosed = false;
+
+  const showOutcome = () => {
+    if (!modalClosed || !outcome) return;
+    overlay.remove();
+    if (outcome.ok) { showResult(outcome.res); return; }
+    app.innerHTML = `
+      <div class="head"><h1>পরীক্ষা জমা হয়েছে</h1></div>
+      <div class="body center"><p>${esc(studentName)}, আপনার উত্তর পাঠানো হয়েছে।</p>
+      <p class="error">ফলাফল দেখাতে সমস্যা হয়েছে: ${esc(outcome.msg)}</p></div>`;
+    window.scrollTo(0, 0);
+  };
+
+  // পপ-আপ
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="emoji">🎉</div>
+      <b style="font-size:20px;color:#312e81">অংশগ্রহণের জন্য ধন্যবাদ!</b><br>
+      Stay with <b>Arif Hasan</b> এর সাথে থাকুন।
+      ${timeUp ? "<br><small>(সময় শেষ হওয়ায় পরীক্ষা জমা হয়েছে)</small>" : ""}
+      <button type="button" id="okBtn">ফলাফল দেখুন</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const okBtn = overlay.querySelector("#okBtn");
+  okBtn.onclick = () => {
+    modalClosed = true;
+    if (!outcome) { okBtn.disabled = true; okBtn.textContent = "ফলাফল তৈরি হচ্ছে..."; }
+    showOutcome();
+  };
+
+  // ব্যাকগ্রাউন্ডে উত্তর পাঠানো
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -150,15 +185,13 @@ function submitExam(timeUp) {
   .then(r => r.json())
   .then(res => {
     if (!res.success) throw new Error(res.error || "সংরক্ষণ হয়নি");
-    showResult(res);
+    outcome = { ok: true, res: res };
   })
   .catch(err => {
     console.error(err);
-    app.innerHTML = `
-      <div class="head"><h1>পরীক্ষা জমা হয়েছে</h1></div>
-      <div class="body center"><div class="thanks"><b>🎉 অংশগ্রহণের জন্য ধন্যবাদ!</b><br>Stay with <b>Arif Hasan</b> এর সাথে থাকুন।</div><p>${esc(studentName)}, আপনার উত্তর পাঠানো হয়েছে।</p>
-      <p class="error">ফলাফল দেখাতে সমস্যা হয়েছে: ${esc(err.message)}</p></div>`;
-  });
+    outcome = { ok: false, msg: err.message };
+  })
+  .finally(showOutcome);
 }
 
 function showResult(res) {
@@ -166,7 +199,6 @@ function showResult(res) {
   let html = `
     <div class="head"><h1>${esc(studentName)}</h1><p>আপনার ফলাফল</p></div>
     <div class="body">
-      <div class="thanks"><b>🎉 অংশগ্রহণের জন্য ধন্যবাদ!</b><br>Stay with <b>Arif Hasan</b> এর সাথে থাকুন।</div>
       <div class="stats">
         <div class="stat"><b>${res.score}/${res.total}</b><span>স্কোর</span></div>
         <div class="stat"><b>${res.percentage}%</b><span>শতকরা</span></div>
