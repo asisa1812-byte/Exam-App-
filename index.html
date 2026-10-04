@@ -32,6 +32,8 @@
   .options label:hover { background:var(--soft); }
   .options label:has(input:checked) { background:var(--soft); border-color:var(--main); }
   .center { text-align:center; padding:30px 10px; }
+  .thanks { background:linear-gradient(135deg,#dcfce7,#e0e7ff); border-radius:12px; padding:18px; text-align:center; margin-bottom:20px; line-height:1.8; }
+  .thanks b { color:var(--dark); font-size:18px; }
   .namebox { margin-bottom:18px; }
   .namebox input { width:100%; padding:12px; font-size:16px; font-family:inherit; border:2px solid #c7d2fe; border-radius:10px; }
   .namebox input:focus { outline:none; border-color:var(--main); }
@@ -154,7 +156,7 @@ function submitExam(timeUp) {
     console.error(err);
     app.innerHTML = `
       <div class="head"><h1>পরীক্ষা জমা হয়েছে</h1></div>
-      <div class="body center"><p>${esc(studentName)}, আপনার উত্তর পাঠানো হয়েছে।</p>
+      <div class="body center"><div class="thanks"><b>🎉 অংশগ্রহণের জন্য ধন্যবাদ!</b><br>Stay with <b>Arif Hasan</b> এর সাথে থাকুন।</div><p>${esc(studentName)}, আপনার উত্তর পাঠানো হয়েছে।</p>
       <p class="error">ফলাফল দেখাতে সমস্যা হয়েছে: ${esc(err.message)}</p></div>`;
   });
 }
@@ -164,6 +166,7 @@ function showResult(res) {
   let html = `
     <div class="head"><h1>${esc(studentName)}</h1><p>আপনার ফলাফল</p></div>
     <div class="body">
+      <div class="thanks"><b>🎉 অংশগ্রহণের জন্য ধন্যবাদ!</b><br>Stay with <b>Arif Hasan</b> এর সাথে থাকুন।</div>
       <div class="stats">
         <div class="stat"><b>${res.score}/${res.total}</b><span>স্কোর</span></div>
         <div class="stat"><b>${res.percentage}%</b><span>শতকরা</span></div>
