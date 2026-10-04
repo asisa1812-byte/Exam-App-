@@ -1,193 +1,122 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Exam App</title>
-    <link rel="manifest" href="manifest.json">
-
-    <style>
-        body {
-            font-family: 'SolaimanLipi', sans-serif;
-            background: #f0f2f5;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .question {
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .options label {
-            display: block;
-            background: #f8f9fa;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .options label:hover {
-            background: #e9ecef;
-        }
-
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        .loading {
-            text-align: center;
-        }
-
-        .error {
-            color: #d32f2f;
-            text-align: center;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Exam App</title>
+<style>
+  body { font-family: 'SolaimanLipi','Noto Sans Bengali',sans-serif; background:#f0f2f5; margin:0; padding:16px; }
+  .container { max-width:640px; margin:auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,.1); }
+  .bar { position:sticky; top:0; background:#fff; padding:8px 0; display:flex; justify-content:space-between; border-bottom:1px solid #eee; margin-bottom:16px; }
+  #timer { font-weight:bold; color:#d32f2f; }
+  .question { font-weight:bold; margin-bottom:12px; }
+  .options label { display:block; background:#f8f9fa; padding:10px; margin-bottom:8px; border-radius:5px; cursor:pointer; }
+  .options label:hover { background:#e9ecef; }
+  button { background:#4CAF50; color:#fff; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-size:16px; }
+  button:hover { background:#45a049; }
+  .loading { text-align:center; }
+  .error { color:#d32f2f; text-align:center; }
+  .result { text-align:center; }
+</style>
 </head>
-
 <body>
+<div class="container" id="app">
+  <h2 class="loading">অনলাইন পরীক্ষা লোড হচ্ছে...</h2>
+</div>
 
-    <div class="container" id="app">
-        <h2 class="loading">অনলাইন পরীক্ষা লোড হচ্ছে...</h2>
-    </div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyFPtGUnCXxs1Jy8a2r8L-HqGAS-toxW8vvvSRh6BhAaPNadAd2vdI-RPmi-VLKhw/exec?sheet=Bangla";
 
-    <script>
-        const API_URL =
-            "https://script.google.com/macros/s/AKfycbyFPtGUnCXxs1Jy8a2r8L-HqGAS-toxW8vvvSRh6BhAaPNadAd2vdI-RPmi-VLKhw/exec?sheet=Bangla";
+const app = document.getElementById("app");
+let questions = [];
+let timerId = null;
 
-        fetch(API_URL)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("API request failed");
-                }
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
 
-                return response.json();
-            })
+function showError(msg) {
+  app.innerHTML = `
+    <div class="error">
+      <h3>ডেটা লোড করতে সমস্যা হচ্ছে।</h3>
+      <p>${esc(msg)}</p>
+      <button type="button" onclick="location.reload()">আবার চেষ্টা করুন</button>
+    </div>`;
+}
 
-            .then(data => {
+function render(data) {
+  const labels = ["A", "B", "C", "D"];
+  let html = `
+    <div class="bar">
+      <span>${esc(data.title || "অনলাইন পরীক্ষা")} (মোট ${questions.length}টি প্রশ্ন)</span>
+      <span id="timer"></span>
+    </div>`;
 
-                // API থেকে questions array নেওয়া
-                const questions = data.questions;
+  questions.forEach((item, i) => {
+    html += `<div style="margin-bottom:20px;">
+      <div class="question">${i + 1}. ${esc(item.question)}</div>
+      <div class="options">`;
+    (item.options || []).forEach((opt, j) => {
+      html += `<label><input type="radio" name="q${i}" value="${labels[j]}"> ${esc(opt)}</label>`;
+    });
+    html += `</div></div>`;
+  });
 
-                // questions পাওয়া গেছে কি না পরীক্ষা
-                if (!Array.isArray(questions)) {
-                    throw new Error("Questions data পাওয়া যায়নি");
-                }
+  html += `<button type="button" id="submitBtn">সাবমিট করুন</button>`;
+  app.innerHTML = html;
+  document.getElementById("submitBtn").addEventListener("click", () => submitExam(false));
+}
 
-                let html = "";
+function startTimer(seconds) {
+  const el = document.getElementById("timer");
+  let left = seconds;
+  const tick = () => {
+    const m = String(Math.floor(left / 60)).padStart(2, "0");
+    const s = String(left % 60).padStart(2, "0");
+    el.textContent = `⏱ ${m}:${s}`;
+    if (left <= 0) { submitExam(true); return; }
+    left--;
+  };
+  tick();
+  timerId = setInterval(tick, 1000);
+}
 
-                // পরীক্ষার title
-                html += `<h2>${data.title || "অনলাইন পরীক্ষা"}</h2>`;
+function submitExam(timeUp) {
+  clearInterval(timerId);
+  const answers = {};
+  let answered = 0;
+  questions.forEach((_, i) => {
+    const c = document.querySelector(`input[name="q${i}"]:checked`);
+    answers[i + 1] = c ? c.value : null;
+    if (c) answered++;
+  });
+  console.log("Answers:", answers);
+  app.innerHTML = `
+    <div class="result">
+      <h2>${timeUp ? "সময় শেষ!" : "পরীক্ষা জমা হয়েছে!"}</h2>
+      <p>আপনি ${questions.length}টির মধ্যে ${answered}টি প্রশ্নের উত্তর দিয়েছেন।</p>
+    </div>`;
+}
 
-                // মোট প্রশ্ন
-                html += `<h3>মোট প্রশ্ন: ${questions.length}টি</h3>`;
-
-                // সময়
-                if (data.minutes) {
-                    html += `<p>সময়: ${data.minutes} মিনিট</p>`;
-                }
-
-                // সব প্রশ্ন দেখানো
-                questions.forEach((item, index) => {
-
-                    html += `
-                        <div style="margin-bottom:20px;">
-
-                            <div class="question">
-                                ${index + 1}. ${item.question}
-                            </div>
-
-                            <div class="options">
-
-                                <label>
-                                    <input
-                                        type="radio"
-                                        name="q${index}"
-                                        value="A"
-                                    >
-                                    ${item.options[0]}
-                                </label>
-
-                                <label>
-                                    <input
-                                        type="radio"
-                                        name="q${index}"
-                                        value="B"
-                                    >
-                                    ${item.options[1]}
-                                </label>
-
-                                <label>
-                                    <input
-                                        type="radio"
-                                        name="q${index}"
-                                        value="C"
-                                    >
-                                    ${item.options[2]}
-                                </label>
-
-                                <label>
-                                    <input
-                                        type="radio"
-                                        name="q${index}"
-                                        value="D"
-                                    >
-                                    ${item.options[3]}
-                                </label>
-
-                            </div>
-
-                        </div>
-                    `;
-                });
-
-                // Submit button
-                html += `
-                    <button
-                        type="button"
-                        onclick="alert('পরীক্ষা জমা দেওয়া হয়েছে!')"
-                    >
-                        সাবমিট করুন
-                    </button>
-                `;
-
-                // Website-এ HTML দেখানো
-                document.getElementById("app").innerHTML = html;
-            })
-
-            .catch(error => {
-
-                console.error("Error:", error);
-
-                document.getElementById("app").innerHTML = `
-                    <div class="error">
-                        <h3>ডেটা লোড করতে সমস্যা হচ্ছে।</h3>
-                        <p>দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।</p>
-                    </div>
-                `;
-            });
-    </script>
-
+fetch(API_URL, { redirect: "follow" })
+  .then(res => {
+    if (!res.ok) throw new Error("API request failed (" + res.status + ")");
+    return res.json();
+  })
+  .then(data => {
+    if (data.error) throw new Error(data.error);
+    questions = Array.isArray(data) ? data : data.questions;
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error("কোনো প্রশ্ন পাওয়া যায়নি");
+    }
+    render(data);
+    const seconds = Number(data.timeLimit) || (Number(data.minutes) || 10) * 60;
+    startTimer(seconds);
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    showError(err.message);
+  });
+</script>
 </body>
 </html>
