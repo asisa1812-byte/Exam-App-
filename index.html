@@ -5,45 +5,189 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Online Exam App</title>
     <link rel="manifest" href="manifest.json">
+
     <style>
-        body { font-family: 'SolaimanLipi', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .question { font-weight: bold; margin-bottom: 15px; }
-        .options label { display: block; background: #f8f9fa; padding: 10px; margin-bottom: 8px; border-radius: 5px; cursor: pointer; }
-        .options label:hover { background: #e9ecef; }
-        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        body {
+            font-family: 'SolaimanLipi', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .question {
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .options label {
+            display: block;
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .options label:hover {
+            background: #e9ecef;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .loading {
+            text-align: center;
+        }
+
+        .error {
+            color: #d32f2f;
+            text-align: center;
+        }
     </style>
 </head>
+
 <body>
+
     <div class="container" id="app">
-        <h2>অনলাইন পরীক্ষা লোড হচ্ছে...</h2>
+        <h2 class="loading">অনলাইন পরীক্ষা লোড হচ্ছে...</h2>
     </div>
 
     <script>
-        // আপনার Apps Script এর লাইভ /exec লিংকটি এখানে বসানো হয়েছে
-        const API_URL = "https://script.google.com/macros/s/AKfycbyFPtGUnCXxs1Jy8a2r8L-HqGAS-toxW8vvvSRh6BhAaPNadAd2vdI-RPmi-VLKhw/exec?sheet=Bangla";
+        const API_URL =
+            "https://script.google.com/macros/s/AKfycbyFPtGUnCXxs1Jy8a2r8L-HqGAS-toxW8vvvSRh6BhAaPNadAd2vdI-RPmi-VLKhw/exec?sheet=Bangla";
 
         fetch(API_URL)
-            .then(res => res.json())
-            .then(data => {
-                let html = `<h3>মোট প্রশ্ন: ${data.length}টি</h3>`;
-                data.forEach((item, index) => {
-                    html += `<div style="margin-bottom:20px;">
-                      <div class="question">${index + 1}. ${item.question}</div>
-                        <div class="options">
-                            <label><input type="radio" name="q${index}" value="A"> ${item.options[0]}</label>
-                            <label><input type="radio" name="q${index}" value="B"> ${item.options[1]}</label>
-                            <label><input type="radio" name="q${index}" value="C"> ${item.options[2]}</label>
-                            <label><input type="radio" name="q${index}" value="D"> ${item.options[3]}</label>
-                        </div>
-                    </div>`;
-                });
-                html += `<button onclick="alert('পরীক্ষা জমা দেওয়া হয়েছে!')">সাবমিট করুন</button>`;
-                document.getElementById('app').innerHTML = html;
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("API request failed");
+                }
+
+                return response.json();
             })
-            .catch(err => {
-                document.getElementById('app').innerHTML = "ডেটা লোড করতে সমস্যা হচ্ছে।";
+
+            .then(data => {
+
+                // API থেকে questions array নেওয়া
+                const questions = data.questions;
+
+                // questions পাওয়া গেছে কি না পরীক্ষা
+                if (!Array.isArray(questions)) {
+                    throw new Error("Questions data পাওয়া যায়নি");
+                }
+
+                let html = "";
+
+                // পরীক্ষার title
+                html += `<h2>${data.title || "অনলাইন পরীক্ষা"}</h2>`;
+
+                // মোট প্রশ্ন
+                html += `<h3>মোট প্রশ্ন: ${questions.length}টি</h3>`;
+
+                // সময়
+                if (data.minutes) {
+                    html += `<p>সময়: ${data.minutes} মিনিট</p>`;
+                }
+
+                // সব প্রশ্ন দেখানো
+                questions.forEach((item, index) => {
+
+                    html += `
+                        <div style="margin-bottom:20px;">
+
+                            <div class="question">
+                                ${index + 1}. ${item.question}
+                            </div>
+
+                            <div class="options">
+
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="q${index}"
+                                        value="A"
+                                    >
+                                    ${item.options[0]}
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="q${index}"
+                                        value="B"
+                                    >
+                                    ${item.options[1]}
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="q${index}"
+                                        value="C"
+                                    >
+                                    ${item.options[2]}
+                                </label>
+
+                                <label>
+                                    <input
+                                        type="radio"
+                                        name="q${index}"
+                                        value="D"
+                                    >
+                                    ${item.options[3]}
+                                </label>
+
+                            </div>
+
+                        </div>
+                    `;
+                });
+
+                // Submit button
+                html += `
+                    <button
+                        type="button"
+                        onclick="alert('পরীক্ষা জমা দেওয়া হয়েছে!')"
+                    >
+                        সাবমিট করুন
+                    </button>
+                `;
+
+                // Website-এ HTML দেখানো
+                document.getElementById("app").innerHTML = html;
+            })
+
+            .catch(error => {
+
+                console.error("Error:", error);
+
+                document.getElementById("app").innerHTML = `
+                    <div class="error">
+                        <h3>ডেটা লোড করতে সমস্যা হচ্ছে।</h3>
+                        <p>দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।</p>
+                    </div>
+                `;
             });
     </script>
+
 </body>
 </html>
